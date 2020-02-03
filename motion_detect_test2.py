@@ -35,7 +35,7 @@ def take_photo(bucket = "images-bucket-test-20075632"):
     
     # CAUTION!! Overwrites images starting from image_1
     camera.capture('/home/pi/final-year-project/image_%s.jpg' % i)
-    newImage = ('/home/pi/Documents/image_%s.jpg' % i)
+    newImage = ('/home/pi/final-year-project/image_%s.jpg' % i)
     print("A photo has been taken")
     camera.stop_preview()
     object_name = ('image_%s.jpg' % i)
@@ -47,12 +47,13 @@ def upload_file(newImage, bucket, object_name):
     # Create a connection with AWS
     s3_client = boto3.client('s3')
     source_file = 'laurie.jpg'
-    sourceFile = source_file
-    targetFile = object_name
     sleep(1)
     try:
         # Pushing file up to S3      (source file, bucket, target file)
         response = s3_client.upload_file(newImage, bucket, object_name)
+        
+        sourceFile = source_file
+        targetFile = object_name
         # Run AWS Rekognition facial recognition algorithm
         # Compares source file with target file in the bucket
         face_matches = compare_faces(sourceFile, targetFile, bucket)
@@ -100,12 +101,12 @@ def compare_faces(sourceFile, targetFile, bucket):
         print("The face at " + str(position['Left']) + " " +
               str(position['Top']) +
               " matches with " + similarity + "% confidence")
-       
-    imageSource.show()
-    imageTarget.show()
-    imageSource.close()
-    imageTarget.close()
-    return len(response['FaceMatches'])
+        
+        imageSource.show()
+        imageTarget.show()
+        imageSource.close()
+        imageTarget.close()
+        return len(response['FaceMatches'])
     print("Done")
     
 # When motion detected begin 'take_photo' method
