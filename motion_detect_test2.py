@@ -8,6 +8,7 @@ import boto3
 from botocore.exceptions import ClientError
 import io
 from PIL import Image
+import json
 
 # Initiliaze components
 pir = MotionSensor(4) # Pin 4
@@ -64,6 +65,21 @@ def upload_file(newImage, bucket, target_file):
             print(name_target + " is matching with " + name_result)
         else:
             print("No matches")
+        
+        # Create a connection to Lambda
+        lambda_client = boto3.client('lambda')
+        
+        # Input for the Lambda function
+        params = { 'Name' : name_result }
+        
+        # Invoke the function
+        response_lambda = lambda_client.invoke(
+            FunctionName='testFunction',
+            LogType='Tail',
+            Payload=json.dumps(params)
+            )
+        # Output from function
+        print(response_lambda['Payload'].read())
         
     except ClientError as e:
         logging.error(e)
