@@ -52,9 +52,12 @@ def upload_file(newImage, bucket, target_file):
         # Pushing file up to S3      (source file, bucket, target file)
         response = s3_client.upload_file(newImage, bucket, target_file)
         bucketUpload = "images-bucket-test-20075632"
+        
+        # Create a connection with Rekognition
+        client=boto3.client('rekognition')
         # Run AWS Rekognition facial recognition algorithm
         # Compares source file with target file in the bucket
-        face_matches = compare_faces(target_file, bucketUpload)
+        face_matches = compare_faces(client, target_file, bucketUpload)
         print("Face matches: " + str(face_matches))
         
         if(face_matches == 1):
@@ -63,30 +66,43 @@ def upload_file(newImage, bucket, target_file):
             name_result, jpg = result.split('.')
             name_target, jpg = target.split('.')
             print(name_target + " is matching with " + name_result)
+            
+            # Create a connection to Lambda
+            lambda_client = boto3.client('lambda')
+        
+            # Input for the Lambda function
+            params = { 'Name' : name_result }
+        
+            # Invoke the function
+            response_lambda = lambda_client.invoke(
+                FunctionName='testFunction',
+                LogType='Tail',
+                Payload=json.dumps(params)
+                )
+            # Output from function
+            print(response_lambda['Payload'].read())
         else:
-            print("No matches")
-        
-        # Create a connection to Lambda
-        lambda_client = boto3.client('lambda')
-        
-        # Input for the Lambda function
-        params = { 'Name' : name_result }
-        
-        # Invoke the function
-        response_lambda = lambda_client.invoke(
-            FunctionName='testFunction',
-            LogType='Tail',
-            Payload=json.dumps(params)
-            )
-        # Output from function
-        print(response_lambda['Payload'].read())
+            face_count=face_details(client, target_file)
+            print("Faces detected: " + str(face_count))
+            
         
     except ClientError as e:
         logging.error(e)
         return False
     return True
+
+def face_details(client, target_file):
+    print("No matches")
+    response_detail = client.detect_faces(Image={'S3Object': {'Bucket':'fyp-caller-images', 'Name':target_file}}, Attributes=['ALL'])
+    print('Detected faces for ' + target_file)
+    for faceDetail in response_detail['FaceDetails']:
+        print('The detected face is between ' + str(faceDetail['AgeRange']['Low'])
+              + ' and ' + str(faceDetail['AgeRange']['High']) + ' years old.')
+        print('Here are some other attributes: ')
+        print(json.dumps(faceDetail, indent=4, sort_keys=True))
+    return len(response_detail['FaceDetails'])
     
-def compare_faces(target_file, bucket):
+def compare_faces(client, target_file, bucket):
     print("\nCompare Faces")
     #print("Source: " + sourceFile)
     print("Target: " + target_file)
@@ -94,25 +110,9 @@ def compare_faces(target_file, bucket):
     
     # Counter
     j = 0
-    bucketCaller = "fyp-caller-images"
-    # Create a connection with Rekognition
-    client=boto3.client('rekognition')
     
+        
     s3_connection = boto3.resource('s3')
-    # Get source and target files from bucket
-    #s3_object_source = s3_connection.Object(bucket, sourceFile)
-    #s3_object_target = s3_connection.Object(bucket,target_file)
-    #s3_object_caller = s3_connection.Object(bucketCaller,target_file)
-    
-    #s3_response_source = s3_object_source.get()
-    #s3_response_target = s3_object_target.get()
-    #s3_response_caller = s3_object_caller.get()
-    
-    # Read and open files
-    #stream_caller = io.BytesIO(s3_response_caller['Body'].read())
-    #stream_target = io.BytesIO(s3_response_target['Body'].read())
-    #imageCaller = Image.open(stream_caller)
-    #imageTarget = Image.open(stream_target)
     
     # Declaring a non string bucket value
     bucket1 = s3_connection.Bucket('images-bucket-test-20075632')
