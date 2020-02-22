@@ -25,7 +25,7 @@ def stop_camera():
     camera.stop_preview()
 
 # bucket = S3 bucket where the images are stored
-def take_photo(bucket = "images-bucket-test-20075632"):
+def take_photo(bucket = "fyp-caller-images"):
     print("\nMotion")
     led.on()
     camera.start_preview()
@@ -51,10 +51,10 @@ def upload_file(newImage, bucket, target_file):
     try:
         # Pushing file up to S3      (source file, bucket, target file)
         response = s3_client.upload_file(newImage, bucket, target_file)
-        
+        bucketUpload = "images-bucket-test-20075632"
         # Run AWS Rekognition facial recognition algorithm
         # Compares source file with target file in the bucket
-        face_matches = compare_faces(target_file, bucket)
+        face_matches = compare_faces(target_file, bucketUpload)
         print("Face matches: " + str(face_matches))
         
         if(face_matches == 1):
@@ -94,26 +94,29 @@ def compare_faces(target_file, bucket):
     
     # Counter
     j = 0
-    
+    bucketCaller = "fyp-caller-images"
     # Create a connection with Rekognition
     client=boto3.client('rekognition')
     
     s3_connection = boto3.resource('s3')
     # Get source and target files from bucket
     #s3_object_source = s3_connection.Object(bucket, sourceFile)
-    s3_object_target = s3_connection.Object(bucket,target_file)
+    #s3_object_target = s3_connection.Object(bucket,target_file)
+    #s3_object_caller = s3_connection.Object(bucketCaller,target_file)
     
     #s3_response_source = s3_object_source.get()
-    s3_response_target = s3_object_target.get()
+    #s3_response_target = s3_object_target.get()
+    #s3_response_caller = s3_object_caller.get()
     
     # Read and open files
-    #stream_source = io.BytesIO(s3_response_source['Body'].read())
-    stream_target = io.BytesIO(s3_response_target['Body'].read())
-    #imageSource = Image.open(stream_source)
-    imageTarget = Image.open(stream_target)
+    #stream_caller = io.BytesIO(s3_response_caller['Body'].read())
+    #stream_target = io.BytesIO(s3_response_target['Body'].read())
+    #imageCaller = Image.open(stream_caller)
+    #imageTarget = Image.open(stream_target)
     
     # Declaring a non string bucket value
     bucket1 = s3_connection.Bucket('images-bucket-test-20075632')
+    bucketCaller = "fyp-caller-images"
     # Iterate through all objects (i.e images) in the bucket
     for obj in bucket1.objects.all():
         # Key = current image
@@ -121,7 +124,7 @@ def compare_faces(target_file, bucket):
         # AWS compare_faces algorithm, comparing current image with target image
         response = client.compare_faces(SimilarityThreshold=80,
                                         SourceImage={'S3Object': {'Bucket':bucket, 'Name':key}},
-                                        TargetImage={'S3Object': {'Bucket':bucket, 'Name':target_file}})
+                                        TargetImage={'S3Object': {'Bucket':'fyp-caller-images', 'Name':target_file}})
         
         for faceMatch in response['FaceMatches']:
             position = faceMatch['Face']['BoundingBox']
