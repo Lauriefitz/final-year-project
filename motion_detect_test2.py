@@ -60,6 +60,8 @@ def upload_file(newImage, bucket, target_file):
         face_matches = compare_faces(client, target_file, bucketUpload)
         print("Face matches: " + str(face_matches))
         
+        
+        
         if(face_matches == 1):
             result = nameMatch
             target = target_file
@@ -84,8 +86,7 @@ def upload_file(newImage, bucket, target_file):
         else:
             face_count=face_details(client, target_file)
             print("Faces detected: " + str(face_count))
-            
-        
+                    
     except ClientError as e:
         logging.error(e)
         return False
@@ -100,6 +101,25 @@ def face_details(client, target_file):
               + ' and ' + str(faceDetail['AgeRange']['High']) + ' years old.')
         print('Here are some other attributes: ')
         print(json.dumps(faceDetail, indent=4, sort_keys=True))
+    # Create a connection to Lambda
+    lambda_client_uk = boto3.client('lambda')
+    # Input for the Lambda function
+    params = { 'AgeLow' : faceDetail['AgeRange']['Low'],
+               'AgeHigh' : faceDetail['AgeRange']['High'],
+               'Gender': faceDetail['Gender']['Value'],
+               'Eyeglasses': faceDetail['Eyeglasses']['Value'],
+               'Sunglasses': faceDetail['Sunglasses']['Value'],
+               'Beard': faceDetail['Beard']['Value'],
+               'Mustache': faceDetail['Mustache']['Value'],
+               'Smile': faceDetail['Smile']['Value'],}
+    # Invoke the function
+    response_lambda_uk = lambda_client_uk.invoke(
+        FunctionName='describeUnknownCaller',
+        LogType='Tail',
+        Payload=json.dumps(params)
+        )
+    # Output from function
+    print(response_lambda_uk['Payload'].read())
     return len(response_detail['FaceDetails'])
     
 def compare_faces(client, target_file, bucket):
