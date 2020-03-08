@@ -2,6 +2,7 @@ from gpiozero import MotionSensor, LED
 from picamera import PiCamera
 from signal import pause
 from time import sleep
+import time
 import sys
 import logging
 import boto3
@@ -28,8 +29,8 @@ def stop_camera():
 # bucket = S3 bucket where the images are stored
 def take_photo(bucket = "fyp-caller-images"):
     print("\nMotion")
-    led.on()
-    lcd.setText("Hello")
+    
+    lcd.setText("Motion")
     lcd.setRGB(0, 128, 64)
     camera.start_preview()
     sleep(5)
@@ -53,6 +54,7 @@ def detect_face(photo):
     response = client.detect_faces(Image={'S3Object': {'Bucket':bucket, 'Name':photo}},
                                    Attributes=['ALL'])
     if (len(response['FaceDetails']) == 1):
+        led.on()
         # compare
         face_matches = compare_faces(client, photo, bucket)
         print("Face matches: " + str(face_matches))     
@@ -80,6 +82,9 @@ def detect_face(photo):
                 )
             # Output from function
             print(response_lambda['Payload'].read())
+            
+            lcd.setText(name_result + " is at the door!")
+            lcd.setRGB(0, 255, 0)
         else:
             face_count=face_details(client, photo)
             print("Faces detected: " + str(face_count))
@@ -135,6 +140,16 @@ def face_details(client, target_file):
         )
     # Output from function
     print(response_lambda_uk['Payload'].read())
+    
+    t = time.localtime()
+    current_time = time.strftime("%H:%M", t)
+    lcd.setRGB(255, 0, 0)
+    lcd.setText(current_time +": A " + faceDetail['Gender']['Value'] + " is at the door!")
+    time.sleep(2)
+    lcd.setText(current_time +":Aged between " + str(faceDetail['AgeRange']['Low']) + " & "
+                + str(faceDetail['AgeRange']['High']))
+    
+    
     return len(response_detail['FaceDetails'])
     
 def compare_faces(client, target_file, bucket):
