@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError
 import io
 from PIL import Image
 import json
+import lcd
 
 # Initiliaze components
 pir = MotionSensor(4) # Pin 4
@@ -28,12 +29,13 @@ def stop_camera():
 def take_photo(bucket = "fyp-caller-images"):
     print("\nMotion")
     led.on()
+    lcd.setText("Hello")
+    lcd.setRGB(0, 128, 64)
     camera.start_preview()
     sleep(5)
     global i
     i = i + 1
-    print("Camera " + str(i))
-    
+    print("Camera " + str(i))    
     # CAUTION!! Overwrites images starting from image_1
     camera.capture('/home/pi/final-year-project/image_%s.jpg' % i)
     newImage = ('/home/pi/final-year-project/image_%s.jpg' % i)
@@ -43,28 +45,23 @@ def take_photo(bucket = "fyp-caller-images"):
     # Upload new image to S3 bucket
     upload_file(newImage, bucket, target_file)
     sleep(10)
-
-def upload_file(newImage, bucket, target_file):
-    # Create a connection with AWS
-    s3_client = boto3.client('s3')
-    sleep(1)
-    try:
-        # Pushing file up to S3      (source file, bucket, target file)
-        response = s3_client.upload_file(newImage, bucket, target_file)
-        bucketUpload = "images-bucket-test-20075632"
+    
+def detect_face(photo):
+    client = boto3.client('rekognition')
+    bucket = 'fyp-caller-images'
+    
+    response = client.detect_faces(Image={'S3Object': {'Bucket':bucket, 'Name':photo}},
+                                   Attributes=['ALL'])
+    if (len(response['FaceDetails']) == 1):
+        # compare
+        face_matches = compare_faces(client, photo, bucket)
+        print("Face matches: " + str(face_matches))     
         
-        # Create a connection with Rekognition
-        client=boto3.client('rekognition')
         # Run AWS Rekognition facial recognition algorithm
         # Compares source file with target file in the bucket
-        face_matches = compare_faces(client, target_file, bucketUpload)
-        print("Face matches: " + str(face_matches))
-        
-        
-        
         if(face_matches == 1):
             result = nameMatch
-            target = target_file
+            target = photo
             name_result, jpg = result.split('.')
             name_target, jpg = target.split('.')
             print(name_target + " is matching with " + name_result)
@@ -84,8 +81,25 @@ def upload_file(newImage, bucket, target_file):
             # Output from function
             print(response_lambda['Payload'].read())
         else:
-            face_count=face_details(client, target_file)
+            face_count=face_details(client, photo)
             print("Faces detected: " + str(face_count))
+        
+    else:
+        print("No face")
+        return False
+    
+    return True
+
+def upload_file(newImage, bucket, target_file):
+    # Create a connection with AWS
+    s3_client = boto3.client('s3')
+    sleep(1)
+    try:
+        # Pushing file up to S3      (source file, bucket, target file)
+        response = s3_client.upload_file(newImage, bucket, target_file)
+        bucketUpload = "images-bucket-test-20075632"
+        
+        detect_face(target_file)        
                     
     except ClientError as e:
         logging.error(e)
@@ -94,13 +108,14 @@ def upload_file(newImage, bucket, target_file):
 
 def face_details(client, target_file):
     print("No matches")
-    response_detail = client.detect_faces(Image={'S3Object': {'Bucket':'fyp-caller-images', 'Name':target_file}}, Attributes=['ALL'])
+    response_detail = client.detect_faces(Image={'S3Object': {'Bucket':'fyp-caller-images', 'Name':target_file}},
+                                          Attributes=['ALL'])
     print('Detected faces for ' + target_file)
     for faceDetail in response_detail['FaceDetails']:
         print('The detected face is between ' + str(faceDetail['AgeRange']['Low'])
               + ' and ' + str(faceDetail['AgeRange']['High']) + ' years old.')
-        print('Here are some other attributes: ')
-        print(json.dumps(faceDetail, indent=4, sort_keys=True))
+        #print('Here are some other attributes: ')
+        #print(json.dumps(faceDetail, indent=4, sort_keys=True))
     # Create a connection to Lambda
     lambda_client_uk = boto3.client('lambda')
     # Input for the Lambda function
@@ -134,16 +149,16 @@ def compare_faces(client, target_file, bucket):
         
     s3_connection = boto3.resource('s3')
     
-    # Declaring a non string bucket value
+    # Declaring a non string bucket value for iteration
     bucket1 = s3_connection.Bucket('images-bucket-test-20075632')
-    bucketCaller = "fyp-caller-images"
+
     # Iterate through all objects (i.e images) in the bucket
     for obj in bucket1.objects.all():
         # Key = current image
         key = obj.key
         # AWS compare_faces algorithm, comparing current image with target image
         response = client.compare_faces(SimilarityThreshold=80,
-                                        SourceImage={'S3Object': {'Bucket':bucket, 'Name':key}},
+                                        SourceImage={'S3Object': {'Bucket':'images-bucket-test-20075632', 'Name':key}},
                                         TargetImage={'S3Object': {'Bucket':'fyp-caller-images', 'Name':target_file}})
         
         for faceMatch in response['FaceMatches']:
