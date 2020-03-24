@@ -73,8 +73,14 @@ def detect_face(photo):
             f.write(name_result)
             f.close()
             
+            k = open("status.txt", "w+")
+            known = "true"
+            k.write(known)
+            k.close()
+            
             # Upload to S3 bucket 'caller-names'
-            upload_file('/home/pi/final-year-project/caller_name.txt', "caller-names", "caller_name.txt", False)
+            upload_file('/home/pi/final-year-project/caller_name.txt', "caller-details", "caller_name.txt", False)
+            upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
             
             # Create a connection to Lambda
             lambda_client = boto3.client('lambda')
@@ -84,7 +90,8 @@ def detect_face(photo):
         
             # Invoke the function
             response_lambda = lambda_client.invoke(
-                FunctionName='testFunction',
+                #FunctionName='testFunction',
+                FunctionName='testHelloJS',
                 LogType='Tail',
                 Payload=json.dumps(params)
                 )
@@ -141,6 +148,60 @@ def face_details(client, target_file):
                'Beard': faceDetail['Beard']['Value'],
                'Mustache': faceDetail['Mustache']['Value'],
                'Smile': faceDetail['Smile']['Value'],}
+    
+    spectacles = faceDetail['Eyeglasses']['Value']
+    if spectacles:
+        eyeglasses = " They were wearing eyeglasses."
+    else:
+        eyeglasses = " They were not wearing eyeglasses."
+    
+    sunnies = faceDetail['Sunglasses']['Value']
+    if sunnies:
+        sunglasses = " They were wearing sunglasses."
+    else:
+        sunglasses = " They weren't wearing sunglasses."
+    
+    smileEv = faceDetail['Smile']['Value']
+    if smileEv:
+        smile = " They were smiling."
+    else:
+        smile = " They weren't smiling."
+    
+    if (faceDetail['Gender']['Value'] == "male" or faceDetail['Gender']['Value'] == "Male"):
+        beardEv = faceDetail['Beard']['Value']
+        if beardEv:
+            beard = " They had a beard."
+        else:
+            beard = " They didn't have a beard."
+        mustEv = faceDetail['Mustache']['Value']
+        if mustEv:
+            mustache = " They had a mustache."
+        else:
+            mustache = " They didn't have a mustache."
+        
+        details = ("A " + faceDetail['Gender']['Value'] + ", aged between " + str(faceDetail['AgeRange']['Low']) + " & "
+                + str(faceDetail['AgeRange']['High']) + " is at your door!" + eyeglasses + sunglasses
+                   + mustache + beard + smile)
+        
+    elif (faceDetail['Gender']['Value'] == "female" or faceDetail['Gender']['Value'] == "Female"):
+        
+        details = ("A " + faceDetail['Gender']['Value'] + ", aged between " + str(faceDetail['AgeRange']['Low']) + " & "
+                + str(faceDetail['AgeRange']['High']) + " is at your door!" + eyeglasses + sunglasses + smile)
+    
+    
+    s = open("status.txt", "w+")
+    known = "false"
+    s.write(known)
+    s.close()
+    
+    u = open("caller_unknown.txt", "w+")
+    u.write(details)
+    u.close()
+            
+    # Upload to S3 bucket 'caller-names'
+    upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
+    upload_file('/home/pi/final-year-project/caller_unknown.txt', "caller-details", "caller_unknown.txt", False)
+    print(details)
     # Invoke the function
     response_lambda_uk = lambda_client_uk.invoke(
         FunctionName='describeUnknownCaller',
@@ -148,7 +209,7 @@ def face_details(client, target_file):
         Payload=json.dumps(params)
         )
     # Output from function
-    print(response_lambda_uk['Payload'].read())
+    #print(response_lambda_uk['Payload'].read())
     
     t = time.localtime()
     current_time = time.strftime("%H:%M", t)
