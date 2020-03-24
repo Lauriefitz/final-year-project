@@ -82,22 +82,6 @@ def detect_face(photo):
             upload_file('/home/pi/final-year-project/caller_name.txt', "caller-details", "caller_name.txt", False)
             upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
             
-            # Create a connection to Lambda
-            lambda_client = boto3.client('lambda')
-        
-            # Input for the Lambda function
-            params = { 'Name' : name_result }
-        
-            # Invoke the function
-            response_lambda = lambda_client.invoke(
-                #FunctionName='testFunction',
-                FunctionName='testHelloJS',
-                LogType='Tail',
-                Payload=json.dumps(params)
-                )
-            # Output from function
-            print(response_lambda['Payload'].read())
-            
             lcd.setText(name_result + " is at the door!")
             lcd.setRGB(0, 255, 0)
         else:
@@ -137,17 +121,6 @@ def face_details(client, target_file):
               + ' and ' + str(faceDetail['AgeRange']['High']) + ' years old.')
         #print('Here are some other attributes: ')
         #print(json.dumps(faceDetail, indent=4, sort_keys=True))
-    # Create a connection to Lambda
-    lambda_client_uk = boto3.client('lambda')
-    # Input for the Lambda function
-    params = { 'AgeLow' : faceDetail['AgeRange']['Low'],
-               'AgeHigh' : faceDetail['AgeRange']['High'],
-               'Gender': faceDetail['Gender']['Value'],
-               'Eyeglasses': faceDetail['Eyeglasses']['Value'],
-               'Sunglasses': faceDetail['Sunglasses']['Value'],
-               'Beard': faceDetail['Beard']['Value'],
-               'Mustache': faceDetail['Mustache']['Value'],
-               'Smile': faceDetail['Smile']['Value'],}
     
     spectacles = faceDetail['Eyeglasses']['Value']
     if spectacles:
@@ -202,14 +175,6 @@ def face_details(client, target_file):
     upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
     upload_file('/home/pi/final-year-project/caller_unknown.txt', "caller-details", "caller_unknown.txt", False)
     print(details)
-    # Invoke the function
-    response_lambda_uk = lambda_client_uk.invoke(
-        FunctionName='describeUnknownCaller',
-        LogType='Tail',
-        Payload=json.dumps(params)
-        )
-    # Output from function
-    #print(response_lambda_uk['Payload'].read())
     
     t = time.localtime()
     current_time = time.strftime("%H:%M", t)
