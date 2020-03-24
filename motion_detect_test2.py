@@ -44,7 +44,7 @@ def take_photo(bucket = "fyp-caller-images"):
     camera.stop_preview()
     target_file = ('image_%s.jpg' % i)
     # Upload new image to S3 bucket
-    upload_file(newImage, bucket, target_file)
+    upload_file(newImage, bucket, target_file, True)
     sleep(10)
     
 def detect_face(photo):
@@ -67,6 +67,14 @@ def detect_face(photo):
             name_result, jpg = result.split('.')
             name_target, jpg = target.split('.')
             print(name_target + " is matching with " + name_result)
+            
+            # Writing to text file
+            f = open("caller_name.txt", "w+")
+            f.write(name_result)
+            f.close()
+            
+            # Upload to S3 bucket 'caller-names'
+            upload_file('/home/pi/final-year-project/caller_name.txt', "caller-names", "caller_name.txt", False)
             
             # Create a connection to Lambda
             lambda_client = boto3.client('lambda')
@@ -95,7 +103,7 @@ def detect_face(photo):
     
     return True
 
-def upload_file(newImage, bucket, target_file):
+def upload_file(newImage, bucket, target_file, detect):
     # Create a connection with AWS
     s3_client = boto3.client('s3')
     sleep(1)
@@ -104,7 +112,8 @@ def upload_file(newImage, bucket, target_file):
         response = s3_client.upload_file(newImage, bucket, target_file)
         bucketUpload = "images-bucket-test-20075632"
         
-        detect_face(target_file)        
+        if detect:
+            detect_face(target_file)        
                     
     except ClientError as e:
         logging.error(e)
