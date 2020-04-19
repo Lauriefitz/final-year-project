@@ -200,7 +200,7 @@ def compare_faces(client, target_file, bucket):
     s3_connection = boto3.resource('s3')
     
     # Declaring a non string bucket value for iteration
-    bucket1 = s3_connection.Bucket('images-bucket-test-20075632')
+    bucket1 = s3_connection.Bucket('alexa-admin-2007563204634-env')
 
     # Iterate through all objects (i.e images) in the bucket
     for obj in bucket1.objects.all():
@@ -208,7 +208,7 @@ def compare_faces(client, target_file, bucket):
         key = obj.key
         # AWS compare_faces algorithm, comparing current image with target image
         response = client.compare_faces(SimilarityThreshold=80,
-                                        SourceImage={'S3Object': {'Bucket':'images-bucket-test-20075632', 'Name':key}},
+                                        SourceImage={'S3Object': {'Bucket':'alexa-admin-2007563204634-env', 'Name':key}},
                                         TargetImage={'S3Object': {'Bucket':'fyp-caller-images', 'Name':target_file}})
         
         for faceMatch in response['FaceMatches']:
