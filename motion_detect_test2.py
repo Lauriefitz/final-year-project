@@ -20,7 +20,9 @@ camera = PiCamera()
 # Count images taken in one run
 i = 0
 
-def stop_camera():
+def stop_camera():    
+    lcd.setText("")
+    lcd.setRGB(0, 0, 0)
     print("\nNo motion")
     led.off()
     print("Camera off")
@@ -68,10 +70,18 @@ def detect_face(photo):
             name_target, jpg = target.split('.')
             print(name_target + " is matching with " + name_result)
             
+            
+            t = time.localtime()
+            current_time = time.strftime("%H:%M", t)
+            
             # Writing to text file
             f = open("caller_name.txt", "w+")
             f.write(name_result)
             f.close()
+            
+            l = open("last_caller.txt", "w+")
+            l.write(name_result + " was the last person at your door today at " + current_time)
+            l.close()
             
             k = open("status.txt", "w+")
             known = "true"
@@ -80,8 +90,8 @@ def detect_face(photo):
             
             # Upload to S3 bucket 'caller-names'
             upload_file('/home/pi/final-year-project/caller_name.txt', "caller-details", "caller_name.txt", False)
+            upload_file('/home/pi/final-year-project/last_caller.txt', "caller-details", "last_caller.txt", False)
             upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
-            
             lcd.setText(name_result + " is at the door!")
             lcd.setRGB(0, 255, 0)
         else:
@@ -91,6 +101,8 @@ def detect_face(photo):
     else:
         print("No face")
         return False
+    
+    
     
     return True
 
@@ -160,6 +172,11 @@ def face_details(client, target_file):
         
         details = ("A " + faceDetail['Gender']['Value'] + ", aged between " + str(faceDetail['AgeRange']['Low']) + " & "
                 + str(faceDetail['AgeRange']['High']) + " is at your door!" + eyeglasses + sunglasses + smile)
+        
+    t = time.localtime()
+    current_time = time.strftime("%H:%M", t)
+    details_time = ("A " + faceDetail['Gender']['Value'] + ", aged between " + str(faceDetail['AgeRange']['Low']) + " & "
+                + str(faceDetail['AgeRange']['High']) + " was at your door at " + current_time)
     
     
     s = open("status.txt", "w+")
@@ -167,17 +184,21 @@ def face_details(client, target_file):
     s.write(known)
     s.close()
     
+    l = open("last_caller.txt", "w+")
+    l.write(details_time)
+    l.close()
+    
     u = open("caller_unknown.txt", "w+")
     u.write(details)
     u.close()
             
     # Upload to S3 bucket 'caller-names'
     upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
+    upload_file('/home/pi/final-year-project/last_caller.txt', "caller-details", "last_caller.txt", False)
     upload_file('/home/pi/final-year-project/caller_unknown.txt', "caller-details", "caller_unknown.txt", False)
     print(details)
     
-    t = time.localtime()
-    current_time = time.strftime("%H:%M", t)
+    
     lcd.setRGB(255, 0, 0)
     lcd.setText(current_time +": A " + faceDetail['Gender']['Value'] + " is at the door!")
     time.sleep(2)
