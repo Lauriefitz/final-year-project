@@ -69,5 +69,5 @@ def setText_norefresh(text):
         bus.write_byte_data(DISPLAY_TEXT_ADDR, 0x40, ord(c))
         
 if __name__=="__main__":
-    setText("Alexa, Whos's at the door?")
+    setText("Hello \nWorld!")
     setRGB(0, 128, 64)
