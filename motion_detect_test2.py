@@ -31,8 +31,9 @@ def stop_camera():
     print("Camera off")
     camera.stop_preview()
 
-# bucket = S3 bucket where the images are stored
+
 def take_photo():
+    # bucket = S3 bucket where the images are stored
     bucket = "fyp-caller-images"
     print("\nMotion")
     
