@@ -29,11 +29,10 @@ def stop_camera():
     camera.stop_preview()
 
 # bucket = S3 bucket where the images are stored
-def take_photo(bucket = "fyp-caller-images"):
+def take_photo():
+    bucket = "fyp-caller-images"
     print("\nMotion")
     
-    lcd.setText("Motion")
-    lcd.setRGB(0, 128, 64)
     camera.start_preview()
     sleep(5)
     global i
@@ -57,6 +56,8 @@ def detect_face(photo):
                                    Attributes=['ALL'])
     if (len(response['FaceDetails']) == 1):
         led.on()
+        lcd.setText("Motion")
+        lcd.setRGB(0, 128, 64)
         # compare
         face_matches = compare_faces(client, photo, bucket)
         print("Face matches: " + str(face_matches))     
@@ -87,6 +88,11 @@ def detect_face(photo):
             known = "true"
             k.write(known)
             k.close()
+            
+            # Write to Caller log file and upload to s3
+            with open("caller_log.txt", "a") as text_file:
+                text_file.write(current_time + " - " + name_result)
+            upload_file('/home/pi/final-year-project/caller_log.txt', "caller-details", "caller_log.txt", False)
             
             # Upload to S3 bucket 'caller-names'
             upload_file('/home/pi/final-year-project/caller_name.txt', "caller-details", "caller_name.txt", False)
@@ -192,6 +198,10 @@ def face_details(client, target_file):
     u.write(details)
     u.close()
             
+    # Write to Caller log file and upload to s3
+    with open("caller_log.txt", "a") as text_file:
+        text_file.write(current_time + " - Stranger (" + faceDetail['Gender']['Value'] + ")")
+    upload_file('/home/pi/final-year-project/caller_log.txt', "caller-details", "caller_log.txt", False)
     # Upload to S3 bucket 'caller-names'
     upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
     upload_file('/home/pi/final-year-project/last_caller.txt', "caller-details", "last_caller.txt", False)
