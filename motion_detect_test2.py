@@ -2,6 +2,7 @@ from gpiozero import MotionSensor, LED
 from picamera import PiCamera
 from signal import pause
 from time import sleep
+from datetime import date
 import time
 import sys
 import logging
@@ -16,6 +17,8 @@ import lcd
 pir = MotionSensor(4) # Pin 4
 led = LED(16) # Pin 16
 camera = PiCamera()
+today = date.today()
+today_date = today.strftime("%d/%m/%y")
 
 # Count images taken in one run
 i = 0
@@ -46,7 +49,7 @@ def take_photo():
     target_file = ('image_%s.jpg' % i)
     # Upload new image to S3 bucket
     upload_file(newImage, bucket, target_file, True)
-    sleep(10)
+    sleep(5)
     
 def detect_face(photo):
     client = boto3.client('rekognition')
@@ -91,7 +94,7 @@ def detect_face(photo):
             
             # Write to Caller log file and upload to s3
             with open("caller_log.txt", "a") as text_file:
-                text_file.write(current_time + " - " + name_result)
+                text_file.write("\n" + today_date + " " + current_time + " - " + name_result)
             upload_file('/home/pi/final-year-project/caller_log.txt', "caller-details", "caller_log.txt", False)
             
             # Upload to S3 bucket 'caller-names'
@@ -200,7 +203,7 @@ def face_details(client, target_file):
             
     # Write to Caller log file and upload to s3
     with open("caller_log.txt", "a") as text_file:
-        text_file.write(current_time + " - Stranger (" + faceDetail['Gender']['Value'] + ")")
+        text_file.write("\n" + today_date + " "  + current_time + " - Stranger (" + faceDetail['Gender']['Value'] + ")")
     upload_file('/home/pi/final-year-project/caller_log.txt', "caller-details", "caller_log.txt", False)
     # Upload to S3 bucket 'caller-names'
     upload_file('/home/pi/final-year-project/status.txt', "caller-details", "status.txt", False)
