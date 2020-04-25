@@ -85,7 +85,7 @@ def detect_face(photo):
             f.close()
             
             l = open("last_caller.txt", "w+")
-            l.write(name_result + " was the last person at your door today at " + current_time)
+            l.write(name_result + " was the last person at your door at " + today_date + " " + current_time)
             l.close()
             
             k = open("status.txt", "w+")
@@ -186,7 +186,7 @@ def face_details(client, target_file):
     t = time.localtime()
     current_time = time.strftime("%H:%M", t)
     details_time = ("A " + faceDetail['Gender']['Value'] + ", aged between " + str(faceDetail['AgeRange']['Low']) + " & "
-                + str(faceDetail['AgeRange']['High']) + " was at your door at " + current_time)
+                + str(faceDetail['AgeRange']['High']) + " was at your door at " + today_date + " " + current_time)
     
     
     s = open("status.txt", "w+")
